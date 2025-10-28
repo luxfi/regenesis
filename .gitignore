@@ -1,2 +1,43 @@
+# Environment and secrets
 .env
-validators
+.env.*
+!.env.example
+
+# Output directory (generated keys, data, logs)
+output/
+
+# Node data and state
+*.db
+*.pid
+
+# Build artifacts
+bin/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
