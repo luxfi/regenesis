@@ -74,7 +74,7 @@ $(OUT_DIR)/validators/.done:
 $(OUT_DIR)/config/.done: $(OUT_DIR)/validators/.done
 	@mkdir -p $(OUT_DIR)/config
 	@echo "Generating genesis..."
-	@$(SCRIPTS_DIR)/generate-genesis.sh $(NETWORK_ID)
+	@$(SCRIPTS_DIR)/generate-genesis-proper.sh $(NETWORK_ID)
 	@touch $@
 
 $(OUT_DIR)/network/.running: $(OUT_DIR)/config/.done

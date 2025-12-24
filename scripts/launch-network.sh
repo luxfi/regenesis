@@ -3,8 +3,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NODE_ROOT="$ROOT_DIR/../node"
-LUXD="$NODE_ROOT/build/luxd"
+LUXD="$ROOT_DIR/output/luxd"
 VALIDATORS_DIR="$ROOT_DIR/output/validators/mainnet"
 CONFIG_DIR="$ROOT_DIR/output/config/mainnet"
 DATA_DIR="$ROOT_DIR/output/data"
@@ -16,11 +15,18 @@ source "$ROOT_DIR/.env"
 BOOTSTRAP_COUNT=${BOOTSTRAP_VALIDATORS:-5}
 NETWORK_ID=${NETWORK_ID:-96369}
 
-BASE_HTTP_PORT=9650
-BASE_STAKING_PORT=9651
+BASE_HTTP_PORT=9630
+BASE_STAKING_PORT=9631
 
 echo "Launching $BOOTSTRAP_COUNT bootstrap nodes..."
 echo ""
+
+# Create NodeID files from certificates (computed at generation time)
+NODEIDS=("NodeID-EmKbUZB78hGUjsqFJjnpqD4swgziXmmSJ" "NodeID-KjAKN8PrRVw9jxJQz1PDX9kyovKavZhWP" "NodeID-MyTr8rkCVkHC1jfT4bgCXm2LABvUUyeEb" "NodeID-L6DZDwXDVgF91pHfvkpWqTvnCRqSUFAjs" "NodeID-4MvBqB6JF6SX8unyNZ6vXXkMe41XUWRXi")
+mkdir -p "$DATA_DIR"
+for i in $(seq 1 $BOOTSTRAP_COUNT); do
+    echo "${NODEIDS[$((i-1))]}" > "$DATA_DIR/node$i.nodeid"
+done
 
 for i in $(seq 1 $BOOTSTRAP_COUNT); do
     HTTP_PORT=$((BASE_HTTP_PORT + (i-1)*2))
@@ -40,6 +46,24 @@ for i in $(seq 1 $BOOTSTRAP_COUNT); do
         exit 1
     fi
 
+    # Build bootstrap IPs/IDs for nodes after the first
+    BOOTSTRAP_IPS=""
+    BOOTSTRAP_IDS=""
+    if [ $i -gt 1 ]; then
+        # Bootstrap from all previous nodes
+        for j in $(seq 1 $((i-1))); do
+            PREV_STAKING_PORT=$((BASE_STAKING_PORT + (j-1)*2))
+            if [ -n "$BOOTSTRAP_IPS" ]; then
+                BOOTSTRAP_IPS="$BOOTSTRAP_IPS,"
+                BOOTSTRAP_IDS="$BOOTSTRAP_IDS,"
+            fi
+            BOOTSTRAP_IPS="${BOOTSTRAP_IPS}127.0.0.1:$PREV_STAKING_PORT"
+            # Get NodeID from previous node's cert
+            PREV_NODEID=$(cat "$DATA_DIR/node$j.nodeid" 2>/dev/null || echo "")
+            BOOTSTRAP_IDS="${BOOTSTRAP_IDS}${PREV_NODEID}"
+        done
+    fi
+
     $LUXD \
         --network-id=$NETWORK_ID \
         --data-dir="$NODE_DIR" \
@@ -47,18 +71,29 @@ for i in $(seq 1 $BOOTSTRAP_COUNT); do
         --http-port=$HTTP_PORT \
         --staking-host=127.0.0.1 \
         --staking-port=$STAKING_PORT \
+        --public-ip=127.0.0.1 \
         --staking-tls-cert-file="$VALIDATORS_DIR/node$i/staking/staker.crt" \
         --staking-tls-key-file="$VALIDATORS_DIR/node$i/staking/staker.key" \
         --genesis-file="$CONFIG_DIR/genesis.json" \
-        --bootstrap-ips="" \
+        --plugin-dir="$ROOT_DIR/output/plugins" \
         --log-dir="$LOGS_DIR" \
-        --log-level=info \
+        --log-level=debug \
+        --bootstrap-ips="$BOOTSTRAP_IPS" \
+        --bootstrap-ids="$BOOTSTRAP_IDS" \
         > "$LOGS_DIR/node$i.log" 2>&1 &
 
     echo $! > "$DATA_DIR/node$i.pid"
     echo "  PID: $(cat $DATA_DIR/node$i.pid)"
+    echo "  NodeID: ${NODEIDS[$((i-1))]}"
     echo ""
-    sleep 3
+
+    # Wait longer for first node to fully initialize
+    if [ $i -eq 1 ]; then
+        echo "  Waiting for first node to initialize..."
+        sleep 10
+    else
+        sleep 5
+    fi
 done
 
 echo "✓ Bootstrap network launched"
@@ -72,5 +107,5 @@ for i in $(seq 1 $BOOTSTRAP_COUNT); do
     echo "  Node $i: http://localhost:$HTTP_PORT"
 done
 echo ""
-echo "Health Check: curl http://localhost:9650/ext/health"
+echo "Health Check: curl http://localhost:9630/ext/health"
 echo "View Logs: make logs"
