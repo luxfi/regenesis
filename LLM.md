@@ -1,4 +1,4 @@
-# Lux Regenesis - AI Assistant Context
+# Lux Regenesis
 
 ## Overview
 
