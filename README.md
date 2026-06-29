@@ -1,3 +1,5 @@
+<p align="center"><img src=".github/hero.svg" alt="regenesis" width="880"></p>
+
 # Lux Mainnet Regenesis
 
 Complete workflow for launching a 5-node Lux mainnet with C-chain history replay from subnet 96369.
