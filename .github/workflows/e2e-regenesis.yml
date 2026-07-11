@@ -19,7 +19,7 @@ env:
 jobs:
   build-binaries:
     name: Build All Binaries
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     steps:
       - name: Checkout regenesis
         uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
   test-5-node-network:
     name: Test 5-Node Network Launch
     needs: build-binaries
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     timeout-minutes: 30
     steps:
       - name: Checkout regenesis
@@ -166,7 +166,7 @@ jobs:
   test-subnet-deployment:
     name: Test Subnet 96369 Deployment
     needs: build-binaries
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     timeout-minutes: 45
     steps:
       - name: Checkout regenesis
@@ -287,7 +287,7 @@ jobs:
   integration-test:
     name: Integration Tests
     needs: test-5-node-network
-    runs-on: ubuntu-latest
+    runs-on: lux-build-amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
